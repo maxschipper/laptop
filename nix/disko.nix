@@ -1,89 +1,60 @@
 {
-  # This configuration sets up an encrypted swap partition using a key file.
-  # The key file itself will be stored on the encrypted root partition, so it is secure.
-
-  # Tell disko to generate a secret key file for our swap encryption.
-  disko.secrets.keyFiles."/etc/secrets/cryptswap.key" = { };
-
   disko.devices = {
     disk = {
       main = {
         type = "disk";
-        # IMPORTANT: Verify this is the correct device for your SSD.
+        # Using the device for your laptop
         device = "/dev/nvme0n1";
         content = {
           type = "gpt";
           partitions = {
-            # EFI System Partition (ESP) for the bootloader.
+            # EFI System Partition
             ESP = {
-              type = "EF00";
               size = "512M";
+              type = "EF00";
               content = {
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot";
               };
             };
-
-            # This partition will hold the LUKS container for our swap.
-            cryptswap = {
-              size = "32G"; # Match RAM for hibernation.
-              content = {
-                type = "luks";
-                name = "cryptswap";
-                # Unlock this partition using the key file we defined above.
-                # This avoids needing a second password on boot.
-                keyFile = "/etc/secrets/cryptswap.key";
-                content = {
-                  type = "swap";
-                  # This tells disko to automatically configure the system for hibernation.
-                  resumeForHibernation = true;
-                };
-              };
-            };
-
-            # The main partition that will hold the LUKS encrypted container for the OS.
+            # A single LUKS partition taking up the rest of the disk
             luksroot = {
               size = "100%";
               content = {
                 type = "luks";
                 name = "cryptroot";
-                # This partition is unlocked with a password (and later TPM).
-                password = {
-                  ask = true;
-                  prompt = "LUKS root";
+                # By omitting any password or keyFile setting,
+                # disko will prompt for a password interactively.
+                settings = {
+                  # Good practice for SSDs
+                  allowDiscards = true;
                 };
                 content = {
                   type = "btrfs";
-                  extraArgs = [ "-f" ];
+                  extraArgs = [ "-f" ]; # Overwrite if it exists
                   subvolumes = {
+                    # Subvolume for the root filesystem
                     "@root" = {
                       mountpoint = "/";
-                      mountOptions = [
-                        "compress=zstd"
-                        "noatime"
-                      ];
+                      mountOptions = [ "compress=zstd" "noatime" ];
                     };
+                    # Subvolume for home directories
                     "@home" = {
                       mountpoint = "/home";
-                      mountOptions = [
-                        "compress=zstd"
-                        "noatime"
-                      ];
+                      mountOptions = [ "compress=zstd" "noatime" ];
                     };
+                    # Subvolume for the Nix store
                     "@nix" = {
                       mountpoint = "/nix";
-                      mountOptions = [
-                        "compress=zstd"
-                        "noatime"
-                      ];
+                      mountOptions = [ "compress=zstd" "noatime" ];
                     };
-                    "@var" = {
-                      mountpoint = "/var";
-                      mountOptions = [
-                        "compress=zstd"
-                        "noatime"
-                      ];
+                    # Subvolume to hold the swap file
+                    "@swap" = {
+                      mountpoint = "/.swapvol";
+                      # This tells disko to create a swapfile here.
+                      # The size should match your RAM for hibernation.
+                      swap.swapfile.size = "32G";
                     };
                   };
                 };

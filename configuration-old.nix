@@ -1,13 +1,8 @@
 {
   imports = [
-    # Import the new, correct disko configuration.
-    ./disko-new.nix
+    # Import the disk configuration with encrypted swap.
+    ./disko-config-encrypted-swap.nix
   ];
-
-  # --- HIBERNATION CONFIGURATION ---
-  # Disko now automatically finds the swap file and configures hibernation.
-  # We just need to enable the service that makes it happen.
-  services.btrfs.autoScrub.enable = true;
 
   # Bootloader configuration.
   boot.loader.systemd-boot.enable = true;
@@ -15,31 +10,36 @@
 
   # Configure LUKS for the root partition with TPM unlock.
   boot.initrd.luks.devices."cryptroot" = {
-    device = "/dev/disk/by-label/luksroot";
+    device = "/dev/disk/by-label/luksroot"; # Label from disko
     tpm2.enable = true;
     tpm2.fallbackToPassword = true;
-    # This allows the initrd to mount the btrfs volume to find the swapfile.
-    preLVM = true;
   };
 
-  # Networking.
+  # Configure LUKS for the swap partition.
+  # It will be unlocked using the key file we created in the disko config.
+  boot.initrd.luks.devices."cryptswap" = {
+    device = "/dev/disk/by-label/cryptswap"; # Label from disko
+    keyFile = "/etc/secrets/cryptswap.key";
+  };
+
+  # Enable networking.
   networking.networkmanager.enable = true;
 
-  # Time zone.
+  # Set your time zone.
   time.timeZone = "Europe/Berlin";
 
-  # User account.
+  # Define a user account.
   users.users.max = {
     isNormalUser = true;
     description = "Max";
     extraGroups = [ "wheel" ];
   };
 
-  # Basic packages.
+  # Install a basic text editor.
   environment.systemPackages = with pkgs; [
     vim
   ];
 
-  # System state version.
+  # Set the system state version.
   system.stateVersion = "24.05";
 }
