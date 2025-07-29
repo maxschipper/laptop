@@ -59,15 +59,31 @@
                   subvolumes = {
                     "@root" = {
                       mountpoint = "/";
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     "@home" = {
                       mountpoint = "/home";
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     "@nix" = {
                       mountpoint = "/nix";
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     "@var" = {
                       mountpoint = "/var";
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                   };
                 };
@@ -77,10 +93,5 @@
         };
       };
     };
-    # Btrfs mount options can be configured here for all subvolumes if desired.
-    btrfs.mountOptions = [
-      "compress=zstd"
-      "noatime"
-    ];
   };
 }
