@@ -4,7 +4,7 @@
       main = {
         type = "disk";
         # Using the device for your laptop
-        device = "/dev/nvme0n1";
+        device = "/dev/XXX";
         content = {
           type = "gpt";
           partitions = {
@@ -16,44 +16,66 @@
                 type = "filesystem";
                 format = "vfat";
                 mountpoint = "/boot";
+                mountOptions = [ "umask=0077" ];
               };
             };
             # A single LUKS partition taking up the rest of the disk
-            luksroot = {
+            luks = {
               size = "100%";
               content = {
                 type = "luks";
-                name = "cryptroot";
+                name = "crypted";
                 # By omitting any password or keyFile setting,
                 # disko will prompt for a password interactively.
+                passwordFile = "/tmp/secret.key";
                 settings = {
                   # Good practice for SSDs
                   allowDiscards = true;
                 };
+                additionalKeyFiles = [ "/tmp/additionalSecret.key" ];
                 content = {
                   type = "btrfs";
-                  extraArgs = [ "-f" ]; # Overwrite if it exists
+                  extraArgs = [
+                    "-f"
+                    "-L"
+                    "nixos"
+                  ]; # Overwrite if it exists + label nixos
                   subvolumes = {
                     # Subvolume for the root filesystem
                     "@root" = {
                       mountpoint = "/";
-                      mountOptions = [ "compress=zstd" "noatime" ];
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     # Subvolume for home directories
                     "@home" = {
                       mountpoint = "/home";
-                      mountOptions = [ "compress=zstd" "noatime" ];
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     # Subvolume for the Nix store
                     "@nix" = {
                       mountpoint = "/nix";
-                      mountOptions = [ "compress=zstd" "noatime" ];
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
+                    };
+                    # Subvolume for the logs
+                    "@logs" = {
+                      mountpoint = "/var/logs";
+                      mountOptions = [
+                        "compress=zstd"
+                        "noatime"
+                      ];
                     };
                     # Subvolume to hold the swap file
                     "@swap" = {
                       mountpoint = "/.swapvol";
-                      # This tells disko to create a swapfile here.
-                      # The size should match your RAM for hibernation.
                       swap.swapfile.size = "32G";
                     };
                   };

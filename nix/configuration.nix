@@ -1,7 +1,7 @@
 {
   imports = [
     # Import the new, correct disko configuration.
-    ./disko-new.nix
+    ./disko.nix
   ];
 
   # --- HIBERNATION CONFIGURATION ---
